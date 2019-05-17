@@ -36,8 +36,9 @@ for i in range(225):
     if mayor_120 == 0:
         obras_demanda.append(i+1)
     else:
+        obras_demanda.append(i+1)
         obras_demanda.append(i+1.1)
-        obras_demanda.append(i+1.2)
+print(obras_demanda)
 
 plantas = [i+1 for i in range(4)]
 # Cree conjunto dias_inventa para mantener el inventario del 8vo día positivo y que se cumpla la restricción el domingo
@@ -83,43 +84,45 @@ for obra in obras:
         # Se agregan obras con demanda que pueden caber en un camión grande
         if int(sheet_obras.cell_value(obra+3, dia+4)) <= 120:
             demanda_diaria[(obra, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))
+            demanda_diaria[(obra+0.1, dia)] = 0
         else:
             if 120 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 130:
                 # se usa un camion mediano al maximo y uno chico con 30-40
-                demanda_diaria[(obra+0.1, dia)]= 90
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
+                demanda_diaria[(obra, dia)]= 90
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
             elif 130 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 140:
                 # se usa un camion mediano al maximo y uno chico con 40-50
-                demanda_diaria[(obra+0.1, dia)]= 90
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
+                demanda_diaria[(obra, dia)]= 90
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
             elif 140 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 150:
                 # se usa un camion mediano al maximo y uno chico con 50-60
-                demanda_diaria[(obra+0.1, dia)]= 90
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
+                demanda_diaria[(obra, dia)]= 90
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
             elif 150 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 160:
                 # se usan dos camiones medianos, uno en su maxima capacidad y el otro con 60-70
-                demanda_diaria[(obra+0.1, dia)]= 90
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
+                demanda_diaria[(obra, dia)]= 90
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
             elif 160 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 170:
                 # se usan dos camiones medianos, uno en su maxima capacidad y el otro con 70-80
-                demanda_diaria[(obra+0.1, dia)]= 90
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
+                demanda_diaria[(obra, dia)]= 90
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 90
             elif 170 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 180:
                 # se usa un camion grande en su maxima capacidad y uno chico en 50-60
-                demanda_diaria[(obra+0.1, dia)]= 120
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
+                demanda_diaria[(obra, dia)]= 120
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
             elif 180 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 190:
                 # se usa un camion grande en su maxima capacidad y uno mediano en 60-70
-                demanda_diaria[(obra+0.1, dia)]= 120
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
+                demanda_diaria[(obra, dia)]= 120
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
             elif 190 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 200:
                 # se usa un camion grande en su maxima capacidad y uno mediano en 70-80
-                demanda_diaria[(obra+0.1, dia)]= 120
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
+                demanda_diaria[(obra, dia)]= 120
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
             elif 200 < int(sheet_obras.cell_value(obra+3, dia+4)) <= 210:
                 # se usa un camion grande en su maxima capacidad y uno mediano en 80-90
-                demanda_diaria[(obra+0.1, dia)]= 120
-                demanda_diaria[(obra+0.2, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
+                demanda_diaria[(obra, dia)]= 120
+                demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
+        #print(demanda_diaria)
 
 
 for obra in obras_demanda:
@@ -139,7 +142,7 @@ for obra in obras_demanda:
     for dia in dias:
         try:
             tiempo_despacho = tiempo_maximo_viaje_obra[obra] + demanda_diaria[obra, dia]*duracion_descarga_obras[obra]
-            print('tiempo, obra, dia, demanda, tiempo viaje, tiempo descarga', tiempo_despacho, obra, dia, demanda_diaria[obra, dia], tiempo_maximo_viaje_obra[obra], duracion_descarga_obras[obra])
+           # print('tiempo, obra, dia, demanda, tiempo viaje, tiempo descarga', tiempo_despacho, obra, dia, demanda_diaria[obra, dia], tiempo_maximo_viaje_obra[obra], duracion_descarga_obras[obra])
         except:
             continue
         if tiempo_despacho < 1:
@@ -172,7 +175,7 @@ m = Model('Asignacion de obras a plantas')
 x = {}
 
 for planta in plantas:
-        for obra in obras:
+        for obra in obras_demanda:
             for dia in dias:
                     x[(planta, dia, obra)] = m.addVar(vtype=GRB.BINARY, name='x_{}_{}_{}'.format(
                                                                              planta, dia, obra))
@@ -214,17 +217,18 @@ planta_0_7 = 0
 obras_asig_0_7 = []
 
 # 1. Si una obra tiene demanda mayor a 0 en un día específico entonces tiene que tener una planta asignada
-for obra in obras:
+for obra in obras_demanda:
     for dia in dias:
         if demanda_diaria[(obra, dia)] > 0:
             m.addConstr(quicksum(x[(planta, dia, obra)] for planta in plantas) == 1)
 m.update()
 # 2. Si una obra tiene demanda igual a 0 en un día específico entonces no tiene ninguna planta asignada.
 # Además se agregan a la lista de plantas sin asignación para ese día específico.
-for obra in obras:
+for obra in obras_demanda:
     for dia in dias:
         if demanda_diaria[(obra, dia)] == 0:
-            m.addConstr(quicksum(x[(planta, dia, obra)] for planta in plantas) == 0)
+            for planta in plantas:
+                m.addConstr(x[(planta, dia, obra)] == 0)
             if dia == 1:
                 planta_0_1 += 1
                 obras_asig_0_1.append(obra)
@@ -262,27 +266,32 @@ m.update()
 # asignadas ese dia es igual al inventario del día siguiente
 for planta in plantas:
     for dia in dias:
-        m.addConstr(Inventario[planta, dia] + Produc[planta, dia-1] -
+        m.addConstr(Inventario[planta, dia] + Produc[planta, dia] -
                     (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia]
-                 for obra in obras)) == Inventario[planta, dia+1])
+                 for obra in obras_demanda)) == Inventario[planta, dia+1])
 m.update()
 
-# 6. Producción máxima por planta
+
+# 6. Suplir la demanda de cada día
+for planta in plantas:
+    for dia in dias:
+        m.addConstr(Inventario[planta, dia] >=
+                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia]
+                 for obra in obras_demanda)))
+m.update()
+
+
+# 7. Producción máxima por planta
 for planta in plantas:
     for dia in dias:
         m.addConstr(Produc[planta, dia] <= produccion_max[planta])
 m.update()
 
-# 7. Producción día 0 igual a 0
-for planta in plantas:
-    for dia in dias:
-        m.addConstr(Produc[planta, 0] == 0)
-m.update()
 
 obj = quicksum((Produc[planta, dia]*costos_planta[planta])for planta in plantas for dia in dias)\
       + quicksum((Inventario[planta, dia]*almacenamiento_planta[planta]) for dia in dias for planta in plantas) \
       + quicksum((x[(planta,dia, obra)]*distancia_obra_planta[(obra, planta)]*0.0021)
-                 for obra in obras for planta in plantas for dia in dias)
+                 for obra in obras_demanda for planta in plantas for dia in dias)
 
 m.setObjective(obj,GRB.MINIMIZE)
 m.update()
@@ -355,124 +364,123 @@ costos_prod = 0
 for v in m.getVars():
     if v.varName[0:6] == "Produc":
         produccion_plantas.append((v.varName, v.x))
-        costos_prod += (v.x*costos_planta[int(v.varName[7:8])])
+        costos_prod += (v.x*costos_planta[float(v.varName[7:8])])
 
     if v.varName[0:10] == "Inventario":
         inventario_plantas.append((v.varName, v.x))
     if v.varName[0:5]=="x_1_1":
         if v.x==1:
             planta_1_1+=1
-            obras_asig_1_1.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_1.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_1":
         if v.x==1:
             planta_2_1+=1
-            obras_asig_2_1.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_1.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_1":
         if v.x==1:
             planta_3_1+=1
-            obras_asig_3_1.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_1.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_1":
         if v.x==1:
             planta_4_1+=1
-            obras_asig_4_1.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_1.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_2":
         if v.x==1:
             planta_1_2+=1
-            obras_asig_1_2.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_2.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_2":
         if v.x==1:
             planta_2_2+=1
-            obras_asig_2_2.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_2.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_2":
         if v.x==1:
             planta_3_2+=1
-            obras_asig_3_2.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_2.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_2":
         if v.x==1:
             planta_4_2+=1
-            obras_asig_4_2.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_2.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_3":
         if v.x==1:
             planta_1_3+=1
-            obras_asig_1_3.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_3.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_3":
         if v.x==1:
             planta_2_3+=1
-            obras_asig_2_3.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_3.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_3":
         if v.x==1:
             planta_3_3+=1
-            obras_asig_3_3.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_3.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_3":
         if v.x==1:
             planta_4_3+=1
-            obras_asig_4_3.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_3.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_4":
         if v.x==1:
             planta_1_4+=1
-            obras_asig_1_4.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_4.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_4":
         if v.x==1:
             planta_2_4+=1
-            obras_asig_2_4.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_4.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_4":
         if v.x==1:
             planta_3_4+=1
-            obras_asig_3_4.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_4.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_4":
         if v.x==1:
             planta_4_4+=1
-            obras_asig_4_4.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_4.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_5":
         if v.x==1:
             planta_1_5+=1
-            obras_asig_1_5.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_5.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_5":
         if v.x==1:
             planta_2_5+=1
-            obras_asig_2_5.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_5.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_5":
         if v.x==1:
             planta_3_5+=1
-            obras_asig_3_5.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_5.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_5":
         if v.x==1:
             planta_4_5+=1
-            obras_asig_4_5.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_5.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_6":
         if v.x==1:
             planta_1_6+=1
-            obras_asig_1_6.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_6.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_6":
         if v.x==1:
             planta_2_6+=1
-            obras_asig_2_6.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_6.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_6":
         if v.x==1:
             planta_3_6+=1
-            obras_asig_3_6.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_6.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_6":
         if v.x==1:
             planta_4_6+=1
-            obras_asig_4_6.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_6.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_7":
         if v.x==1:
             planta_1_7+=1
-            obras_asig_1_7.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_1_7.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_7":
         if v.x==1:
             planta_2_7+=1
-            obras_asig_2_7.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_2_7.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_7":
         if v.x==1:
             planta_3_7+=1
-            obras_asig_3_7.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_3_7.append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_7":
         if v.x==1:
             planta_4_7+=1
-            obras_asig_4_7.append(int(v.varName[6:len(v.varName)]))
+            obras_asig_4_7.append(float(v.varName[6:len(v.varName)]))
 
-"""
 obras_asig_1=[obras_asig_1_1,obras_asig_2_1,obras_asig_3_1,obras_asig_4_1]
 obras_asig_2=[obras_asig_1_2,obras_asig_2_2,obras_asig_3_2,obras_asig_4_2]
 obras_asig_3=[obras_asig_1_3,obras_asig_2_3,obras_asig_3_3,obras_asig_4_3]
@@ -652,4 +660,4 @@ print("Inventario plantas", inventario_plantas)
 print(costos_prod)
 print('Costo total: %g' % m.objVal)
 
-"""
+
