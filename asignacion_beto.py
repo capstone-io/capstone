@@ -43,6 +43,8 @@ print(obras_demanda)
 plantas = [i+1 for i in range(4)]
 # Cree conjunto dias_inventa para mantener el inventario del 8vo día positivo y que se cumpla la restricción el domingo
 dias_inventa = [i+1 for i in range(8)]
+turnos = [i+1 for i in range(3)]
+
 
 # Producción máxima de cada planta
 produccion_max = {}
@@ -68,6 +70,11 @@ tiempo_despachos = {}
 for dia in dias:
     for i in range(1, 7):
         tiempo_despachos[dia, i] = []
+# Turnos de disponibilidad para almacenamiento de las distintas obras
+turnos_ab = {}
+for obra in obras_demanda:
+    for turno in turnos:
+        turnos_ab[(obra, turno)] = int(sheet_obras.cell_value(int(obra)+3,turno+11))
 
 
 for planta in plantas:
@@ -157,16 +164,10 @@ for obra in obras_demanda:
             tiempo_despachos[(dia, 5)].append(obra)
         elif tiempo_despacho < 6:
             tiempo_despachos[(dia, 6)].append(obra) 
-        elif tiempo_despacho < 7:
-            tiempo_despachos[(dia, 7)].append(obra)
-        elif tiempo_despacho < 8:
-            tiempo_despachos[(dia, 8)].append(obra)
-        elif tiempo_despacho < 9:
-            tiempo_despachos[(dia, 9)].append(obra)
         #tiempo_uso_camion[(dia, obra)] = float(sheet_calculos_ruteo.cell_value(obra+2, 19+dia))
 
-    
-#print(tiempo_uso_camion)        
+
+
 #print(float(sheet_calculos_ruteo.cell_value(3, 20)))
 
 m = Model('Asignacion de obras a plantas')
@@ -199,6 +200,7 @@ for planta in plantas:
         Produc[planta, dia] = m.addVar(vtype=GRB.CONTINUOUS, name='Produc_{}_{}'.format(
                                                                              planta, dia))
 m.update()
+
 
 
 planta_0_1 = 0
@@ -358,6 +360,13 @@ obras_asig_3_7=[]
 planta_4_7=0
 obras_asig_4_7=[]
 
+obras_asignadas = {}
+cantidad_obras_asignadas = {}
+for planta in plantas:
+    for dia in dias:
+        obras_asignadas[planta, dia] = []
+        cantidad_obras_asignadas[planta, dia] = 0
+        
 produccion_plantas = []
 inventario_plantas = []
 costos_prod = 0
@@ -370,124 +379,118 @@ for v in m.getVars():
         inventario_plantas.append((v.varName, v.x))
     if v.varName[0:5]=="x_1_1":
         if v.x==1:
-            planta_1_1+=1
-            obras_asig_1_1.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,1]+=1
+            obras_asignadas[1, 1].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_1":
         if v.x==1:
-            planta_2_1+=1
-            obras_asig_2_1.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,1]+=1
+            obras_asignadas[2, 1].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_1":
         if v.x==1:
-            planta_3_1+=1
-            obras_asig_3_1.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,1]+=1
+            obras_asignadas[3, 1].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_1":
         if v.x==1:
-            planta_4_1+=1
-            obras_asig_4_1.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,1]+=1
+            obras_asignadas[4, 1].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_2":
         if v.x==1:
-            planta_1_2+=1
-            obras_asig_1_2.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,2]+=1
+            obras_asignadas[1, 2].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_2":
         if v.x==1:
-            planta_2_2+=1
-            obras_asig_2_2.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,2]+=1
+            obras_asignadas[2, 2].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_2":
         if v.x==1:
-            planta_3_2+=1
-            obras_asig_3_2.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,2]+=1
+            obras_asignadas[3, 2].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_2":
         if v.x==1:
-            planta_4_2+=1
-            obras_asig_4_2.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,2]+=1
+            obras_asignadas[3, 2].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_3":
         if v.x==1:
-            planta_1_3+=1
-            obras_asig_1_3.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,3]+=1
+            obras_asignadas[1, 3].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_3":
         if v.x==1:
-            planta_2_3+=1
-            obras_asig_2_3.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,3]+=1
+            obras_asignadas[2, 3].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_3":
         if v.x==1:
-            planta_3_3+=1
-            obras_asig_3_3.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,3]+=1
+            obras_asignadas[3, 3].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_3":
         if v.x==1:
-            planta_4_3+=1
-            obras_asig_4_3.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,3]+=1
+            obras_asignadas[4, 3].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_4":
         if v.x==1:
-            planta_1_4+=1
-            obras_asig_1_4.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,4]+=1
+            obras_asignadas[1, 4].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_4":
         if v.x==1:
-            planta_2_4+=1
-            obras_asig_2_4.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,4]+=1
+            obras_asignadas[2, 4].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_4":
         if v.x==1:
-            planta_3_4+=1
-            obras_asig_3_4.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,4]+=1
+            obras_asignadas[3, 4].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_4":
         if v.x==1:
-            planta_4_4+=1
-            obras_asig_4_4.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,4]+=1
+            obras_asignadas[4, 4].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_5":
         if v.x==1:
-            planta_1_5+=1
-            obras_asig_1_5.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,5]+=1
+            obras_asignadas[1, 5].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_5":
         if v.x==1:
-            planta_2_5+=1
-            obras_asig_2_5.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,5]+=1
+            obras_asignadas[2, 5].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_5":
         if v.x==1:
-            planta_3_5+=1
-            obras_asig_3_5.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,5]+=1
+            obras_asignadas[3, 5].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_5":
         if v.x==1:
-            planta_4_5+=1
-            obras_asig_4_5.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,5]+=1
+            obras_asignadas[4, 5].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_6":
         if v.x==1:
-            planta_1_6+=1
-            obras_asig_1_6.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,6]+=1
+            obras_asignadas[1, 6].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_6":
         if v.x==1:
-            planta_2_6+=1
-            obras_asig_2_6.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,6]+=1
+            obras_asignadas[2, 6].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_6":
         if v.x==1:
-            planta_3_6+=1
-            obras_asig_3_6.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,6]+=1
+            obras_asignadas[3, 6].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_6":
         if v.x==1:
-            planta_4_6+=1
-            obras_asig_4_6.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,6]+=1
+            obras_asignadas[4, 6].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_7":
         if v.x==1:
-            planta_1_7+=1
-            obras_asig_1_7.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[1,7]+=1
+            obras_asignadas[1, 7].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_2_7":
         if v.x==1:
-            planta_2_7+=1
-            obras_asig_2_7.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[2,7]+=1
+            obras_asignadas[2, 7].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_3_7":
         if v.x==1:
-            planta_3_7+=1
-            obras_asig_3_7.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[3,7]+=1
+            obras_asignadas[3, 7].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_4_7":
         if v.x==1:
-            planta_4_7+=1
-            obras_asig_4_7.append(float(v.varName[6:len(v.varName)]))
+            cantidad_obras_asignadas[4,7]+=1
+            obras_asignadas[4, 7].append(float(v.varName[6:len(v.varName)]))
 
-obras_asig_1=[obras_asig_1_1,obras_asig_2_1,obras_asig_3_1,obras_asig_4_1]
-obras_asig_2=[obras_asig_1_2,obras_asig_2_2,obras_asig_3_2,obras_asig_4_2]
-obras_asig_3=[obras_asig_1_3,obras_asig_2_3,obras_asig_3_3,obras_asig_4_3]
-obras_asig_4=[obras_asig_1_4,obras_asig_2_4,obras_asig_3_4,obras_asig_4_4]
-obras_asig_5=[obras_asig_1_5,obras_asig_2_5,obras_asig_3_5,obras_asig_4_5]
-obras_asig_6=[obras_asig_1_6,obras_asig_2_6,obras_asig_3_6,obras_asig_4_6]
-obras_asig_7=[obras_asig_1_7,obras_asig_2_7,obras_asig_3_7,obras_asig_4_7]
+"""
 print("")    
 print("Planta 1 abastece ",planta_1_1," obras en el día 1")
 print("Obras asignadas a P1 en el día 1",obras_asig_1_1)
@@ -602,6 +605,7 @@ print("Obras sin demanda en el día 7", obras_asig_0_7)
 print("")
 print("Producción de plantas", produccion_plantas)
 print("Inventario plantas", inventario_plantas)
+"""
 
 #lib=load_workbook(filename="Datos.xlsx")                                                    #
 #del lib["Asignación"]
