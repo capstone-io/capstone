@@ -182,6 +182,16 @@ for planta in plantas:
                                                                              planta, dia, obra))
 m.update()
 
+A = {}
+
+for planta in plantas:
+        for obra in obras_demanda:
+            for dia in dias:
+                    A[(planta, dia, obra)] = m.addVar(vtype=GRB.BINARY, name='A_{}_{}_{}'.format(
+                                                                             planta, dia, obra))
+m.update()
+
+
 # Variable de Inventario. Cantidad de inventario disponible al principio del día en una planta.
 # Dura hasta el día 8 para asegurar que se cumpla la demanda
 Inventario = {}
@@ -220,9 +230,14 @@ obras_asig_0_7 = []
 
 # 1. Si una obra tiene demanda mayor a 0 en un día específico entonces tiene que tener una planta asignada
 for obra in obras_demanda:
-    for dia in dias:
+    for dia in range(2, 8):
         if demanda_diaria[(obra, dia)] > 0:
-            m.addConstr(quicksum(x[(planta, dia, obra)] for planta in plantas) == 1)
+            m.addConstr(quicksum(x[(planta, dia, obra)] + A[(planta, dia-1, obra)] for planta in plantas) == 1)
+m.update()
+
+for obra in obras_demanda:
+    if demanda_diaria[(obra, 1)] > 0:
+        m.addConstr(quicksum(x[(planta, 1, obra)] for planta in plantas) == 1)
 m.update()
 # 2. Si una obra tiene demanda igual a 0 en un día específico entonces no tiene ninguna planta asignada.
 # Además se agregan a la lista de plantas sin asignación para ese día específico.
@@ -253,6 +268,13 @@ for obra in obras_demanda:
                 planta_0_7 += 1
                 obras_asig_0_7.append(obra)
 m.update()
+
+for obra in obras_demanda:
+    for dia in dias:
+        if demanda_diaria[(obra, dia)] == 0:
+            for planta in plantas:
+                m.addConstr(A[(planta, dia, obra)] == 0)
+m.update()
 # 3. El inventario para todos los día incluyendo el primero de la semana siguiente es mayor a 0
 for planta in plantas:
     for dia in dias_inventa:
@@ -267,21 +289,34 @@ m.update()
 # 5. El inventario al inicio del día, más lo que se produce en ese día, menos la demanda de la obras
 # asignadas ese dia es igual al inventario del día siguiente
 for planta in plantas:
-    for dia in dias:
+    for dia in range(1,7):
         m.addConstr(Inventario[planta, dia] + Produc[planta, dia] -
-                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia]
+                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia] +
+                              A[(planta, dia, obra)]*demanda_diaria[obra, dia+1]
                  for obra in obras_demanda)) == Inventario[planta, dia+1])
+m.update()
+
+for planta in plantas:
+    m.addConstr(Inventario[planta, 7] + Produc[planta, 7] -
+                (quicksum(x[(planta, 7, obra)]*demanda_diaria[obra, 7]
+                          for obra in obras_demanda)) == Inventario[planta, 8])
 m.update()
 
 
 # 6. Suplir la demanda de cada día
 for planta in plantas:
-    for dia in dias:
-        m.addConstr(Inventario[planta, dia] >=
-                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia]
-                 for obra in obras_demanda)))
+    m.addConstr(Inventario[planta, 7] >=
+                (quicksum(x[(planta, 7, obra)]*demanda_diaria[obra, 7]
+                for obra in obras_demanda)))
 m.update()
 
+for planta in plantas:
+    for dia in range(1, 7):
+        m.addConstr(Inventario[planta, dia] >=
+                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia] +
+                              A[(planta, dia, obra)]*demanda_diaria[obra, dia+1]
+                 for obra in obras_demanda)))
+m.update()
 
 # 7. Producción máxima por planta
 for planta in plantas:
@@ -290,10 +325,15 @@ for planta in plantas:
 m.update()
 
 
-obj = quicksum((Produc[planta, dia]*costos_planta[planta])for planta in plantas for dia in dias)\
-      + quicksum((Inventario[planta, dia]*almacenamiento_planta[planta]) for dia in dias for planta in plantas) \
-      + quicksum((x[(planta,dia, obra)]*distancia_obra_planta[(obra, planta)]*0.0021)
-                 for obra in obras_demanda for planta in plantas for dia in dias)
+obj = quicksum((Produc[planta, dia]*costos_planta[planta])
+               for planta in plantas for dia in dias)\
+      + quicksum((Inventario[planta, dia]*almacenamiento_planta[planta])
+                 for dia in dias for planta in plantas) \
+      + quicksum(((x[(planta, dia, obra)]+A[(planta, dia, obra)])*distancia_obra_planta[(obra, planta)]*0.0021)
+                 for obra in obras_demanda for planta in plantas for dia in dias)\
+      + quicksum((A[(planta, dia, obra)]*demanda_diaria[(obra, dia)]*0.017)
+                 for planta in plantas for obra in obras for dia in range(1,7))
+
 
 m.setObjective(obj,GRB.MINIMIZE)
 m.update()
