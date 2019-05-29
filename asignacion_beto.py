@@ -38,7 +38,6 @@ for i in range(225):
     else:
         obras_demanda.append(i+1)
         obras_demanda.append(i+1.1)
-print(obras_demanda)
 
 plantas = [i+1 for i in range(4)]
 # Cree conjunto dias_inventa para mantener el inventario del 8vo día positivo y que se cumpla la restricción el domingo
@@ -62,14 +61,11 @@ almacenamiento_planta = {}
 # Se considerada viaje de ida y vuelta
 tiempo_uso_camion = {}
 # Para cada obra se tiene el tiempo que demora a la planta más lejana
-tiempo_maximo_viaje_obra = {}
+tiempo_viaje_obra_planta = {}
 # Duracion de descarga de las obras
 duracion_descarga_obras = {}
 # Para un dia d, obras que se demoran menos de t horas en ser despachadas
 tiempo_despachos = {}
-for dia in dias:
-    for i in range(1, 7):
-        tiempo_despachos[dia, i] = []
 # Turnos de disponibilidad para almacenamiento de las distintas obras
 turnos_ab = {}
 for obra in obras_demanda:
@@ -138,37 +134,26 @@ for obra in obras_demanda:
 
 
 for obra in obras_demanda:
-    tiempo_maximo_viaje_obra[obra] = float(sheet_calculos_ruteo.cell_value(int(obra)+2, 12)) 
-
-for obra in obras_demanda:
     # El tiempo se divide en 10 para que quede el tiempo de descarga por tonelada de hormigón
     duracion_descarga_obras[obra] = float(sheet_obras.cell_value(int(obra)+3, 4))/10
 
 # se usa para restriccion de tiempo de camiones        
+
+for obra in obras_demanda:
+    for planta in plantas:
+        tiempo_viaje_obra_planta[planta, obra] = float(sheet_calculos_ruteo.cell_value(int(obra)+2, int(planta)+7))
+#print(tiempo_viaje_obra_planta)
+#print(demanda_diaria)
+# se usa para restriccion de tiempo de camiones
 for obra in obras_demanda:
     for dia in dias:
-        try:
-            tiempo_despacho = tiempo_maximo_viaje_obra[obra] + demanda_diaria[obra, dia]*duracion_descarga_obras[obra]
+        for planta in plantas:
+            tiempo_despachos[planta, obra, dia] = tiempo_viaje_obra_planta[planta, obra] + demanda_diaria[obra, dia]*duracion_descarga_obras[obra]
            # print('tiempo, obra, dia, demanda, tiempo viaje, tiempo descarga', tiempo_despacho, obra, dia, demanda_diaria[obra, dia], tiempo_maximo_viaje_obra[obra], duracion_descarga_obras[obra])
-        except:
-            continue
-        if tiempo_despacho < 1:
-            tiempo_despachos[(dia, 1)].append(obra)
-        elif tiempo_despacho < 2:
-            tiempo_despachos[(dia, 2)].append(obra)
-        elif tiempo_despacho < 3:
-            tiempo_despachos[(dia, 3)].append(obra)
-        elif tiempo_despacho < 4:
-            tiempo_despachos[(dia, 4)].append(obra)
-        elif tiempo_despacho < 5:
-            tiempo_despachos[(dia, 5)].append(obra)
-        elif tiempo_despacho < 6:
-            tiempo_despachos[(dia, 6)].append(obra) 
-        #tiempo_uso_camion[(dia, obra)] = float(sheet_calculos_ruteo.cell_value(obra+2, 19+dia))
 
-
-
+#print(tiempo_uso_camion)
 #print(float(sheet_calculos_ruteo.cell_value(3, 20)))
+
 
 m = Model('Asignacion de obras a plantas')
 
@@ -289,7 +274,7 @@ m.update()
 # 5. El inventario al inicio del día, más lo que se produce en ese día, menos la demanda de la obras
 # asignadas ese dia es igual al inventario del día siguiente
 for planta in plantas:
-    for dia in range(1,7):
+    for dia in range(1, 7):
         m.addConstr(Inventario[planta, dia] + Produc[planta, dia] -
                     (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia] +
                               A[(planta, dia, obra)]*demanda_diaria[obra, dia+1]
@@ -328,18 +313,16 @@ m.update()
 obj = quicksum((Produc[planta, dia]*costos_planta[planta])
                for planta in plantas for dia in dias)\
       + quicksum((Inventario[planta, dia]*almacenamiento_planta[planta])
-                 for dia in dias for planta in plantas) \
+                 for dia in range(2,8) for planta in plantas) \
       + quicksum(((x[(planta, dia, obra)]+A[(planta, dia, obra)])*distancia_obra_planta[(obra, planta)]*0.0021)
                  for obra in obras_demanda for planta in plantas for dia in dias)\
-      + quicksum((A[(planta, dia, obra)]*demanda_diaria[(obra, dia)]*0.017)
-                 for planta in plantas for obra in obras for dia in range(1,7))
+      + quicksum((A[(planta, dia, obra)]*demanda_diaria[(obra, dia+1)]*0.017)
+                 for planta in plantas for obra in obras for dia in range(1, 7))
 
 
 m.setObjective(obj,GRB.MINIMIZE)
 m.update()
 m.optimize()
-
-
 
 
 
@@ -402,19 +385,31 @@ obras_asig_4_7=[]
 
 obras_asignadas = {}
 cantidad_obras_asignadas = {}
+obras_adelantadas = {}
+cantidad_obras_adelantadas = {}
 for planta in plantas:
     for dia in dias:
         obras_asignadas[planta, dia] = []
         cantidad_obras_asignadas[planta, dia] = 0
-        
+for planta in plantas:
+    for dia in dias:
+        obras_adelantadas[planta, dia] = []
+        cantidad_obras_adelantadas[planta, dia] = 0
+
 produccion_plantas = []
 inventario_plantas = []
 costos_prod = 0
+costo_inventario = 0
+costos_adelantar = 0
 for v in m.getVars():
     if v.varName[0:6] == "Produc":
         produccion_plantas.append((v.varName, v.x))
         costos_prod += (v.x*costos_planta[float(v.varName[7:8])])
-
+    if v.varName[0:10] == "Inventario":
+        inventario_plantas.append((v.varName, v.x))
+        costo_inventario += (v.x*almacenamiento_planta[float(v.varName[11:12])])
+    if v.varName[0:1] == "A" and int(v.varName[4:5])<7:
+        costos_adelantar += (v.x*0.017*demanda_diaria[(int(v.varName[6:7]),int(v.varName[4:5])+1)])
     if v.varName[0:10] == "Inventario":
         inventario_plantas.append((v.varName, v.x))
     if v.varName[0:5]=="x_1_1":
@@ -529,6 +524,102 @@ for v in m.getVars():
         if v.x==1:
             cantidad_obras_asignadas[4,7]+=1
             obras_asignadas[4, 7].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_1":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,1]+=1
+            obras_adelantadas[1, 1].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_1":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,1]+=1
+            obras_adelantadas[2, 1].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_1":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,1]+=1
+            obras_adelantadas[3, 1].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_1":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,1]+=1
+            obras_adelantadas[4, 1].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_2":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,2]+=1
+            obras_adelantadas[1, 2].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_2":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,2]+=1
+            obras_adelantadas[2, 2].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_2":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,2]+=1
+            obras_adelantadas[3, 2].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_2":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,2]+=1
+            obras_adelantadas[3, 2].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_3":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,3]+=1
+            obras_adelantadas[1, 3].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_3":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,3]+=1
+            obras_adelantadas[2, 3].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_3":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,3]+=1
+            obras_adelantadas[3, 3].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_3":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,3]+=1
+            obras_adelantadas[4, 3].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_4":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,4]+=1
+            obras_adelantadas[1, 4].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_4":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,4]+=1
+            obras_adelantadas[2, 4].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_4":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,4]+=1
+            obras_adelantadas[3, 4].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_4":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,4]+=1
+            obras_adelantadas[4, 4].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_5":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,5]+=1
+            obras_adelantadas[1, 5].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_5":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,5]+=1
+            obras_adelantadas[2, 5].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_5":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,5]+=1
+            obras_adelantadas[3, 5].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_5":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,5]+=1
+            obras_adelantadas[4, 5].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_1_6":
+        if v.x==1:
+            cantidad_obras_adelantadas[1,6]+=1
+            obras_adelantadas[1, 6].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_2_6":
+        if v.x==1:
+            cantidad_obras_adelantadas[2,6]+=1
+            obras_adelantadas[2, 6].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_3_6":
+        if v.x==1:
+            cantidad_obras_adelantadas[3,6]+=1
+            obras_adelantadas[3, 6].append(float(v.varName[6:len(v.varName)]))
+    elif v.varName[0:5]=="A_4_6":
+        if v.x==1:
+            cantidad_obras_adelantadas[4,6]+=1
+            obras_adelantadas[4, 6].append(float(v.varName[6:len(v.varName)]))
 
 """
 print("")    
@@ -701,7 +792,13 @@ print("Inventario plantas", inventario_plantas)
  #   except Excpetion as e:
   #      print(e)
    #     print("Ha ocurrido un problema al intentar guardar el archivo")
+print(obras_asignadas)
+print(cantidad_obras_asignadas)
+print(obras_adelantadas)
+print(cantidad_obras_adelantadas)
 print(costos_prod)
+print(costo_inventario)
+print(costos_adelantar)
 print('Costo total: %g' % m.objVal)
 
 
