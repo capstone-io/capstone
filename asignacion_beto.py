@@ -52,6 +52,10 @@ produccion_max = {}
 demanda_diaria = {}
 # Distancia entre obras y plantas
 distancia_obra_planta = {}
+#posiciones de obras (x,y)
+posiciones_obras = {}
+#posiciones_plantas (x,y)
+posiciones_plantas = {}
 # Stock en día 1
 stock_inicial = {}
 # Costos de producción por planta
@@ -76,7 +80,9 @@ for obra in obras_demanda:
     for turno in turnos:
         turnos_ab[(obra, turno)] = int(sheet_obras.cell_value(int(obra)+3,turno+11))
 
-
+for planta in plantas:
+    posiciones_plantas[planta] = (int(sheet_plantas.cell_value(planta+2, 2)), 
+                                  int(sheet_plantas.cell_value(planta+2, 3)))
 for planta in plantas:
     produccion_max[planta] = int(sheet_plantas.cell_value(planta+2, 7))
 for planta in plantas:
@@ -131,6 +137,11 @@ for obra in obras:
                 demanda_diaria[(obra+0.1, dia)]= int(sheet_obras.cell_value(obra+3, dia+4))- 120
         #print(demanda_diaria)
 
+
+# entrega posiciones de obras
+for obra in obras_demanda:
+    posiciones_obras[obra] = (int(sheet_obras.cell_value(int(obra)+3, 2)), 
+                                int(sheet_obras.cell_value(int(obra)+3, 3)))
 
 for obra in obras_demanda:
     for planta in plantas:
@@ -366,9 +377,9 @@ for planta in plantas:
     for dia in dias:
         obras_asignadas[planta, dia] = []
         cantidad_obras_asignadas[planta, dia] = 0
-        
+
+inventario_plantas = {}
 produccion_plantas = []
-inventario_plantas = []
 costos_prod = 0
 for v in m.getVars():
     if v.varName[0:6] == "Produc":
@@ -376,7 +387,7 @@ for v in m.getVars():
         costos_prod += (v.x*costos_planta[float(v.varName[7:8])])
 
     if v.varName[0:10] == "Inventario":
-        inventario_plantas.append((v.varName, v.x))
+        inventario_plantas[(int(v.varName[11:12]), int(v.varName[13:]))]= v.x
     if v.varName[0:5]=="x_1_1":
         if v.x==1:
             cantidad_obras_asignadas[1,1]+=1
