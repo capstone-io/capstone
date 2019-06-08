@@ -44,7 +44,8 @@ plantas = [i+1 for i in range(4)]
 dias_inventa = [i+1 for i in range(8)]
 turnos = [i+1 for i in range(3)]
 
-
+# Posiciones de las obras
+posiciones_obras = {}
 # Producción máxima de cada planta
 produccion_max = {}
 # Producción máxima de cada planta
@@ -71,7 +72,10 @@ turnos_ab = {}
 for obra in obras_demanda:
     for turno in turnos:
         turnos_ab[(obra, turno)] = int(sheet_obras.cell_value(int(obra)+3,turno+11))
-
+        
+posiciones_plantas = {}
+for planta in plantas:
+    posiciones_plantas[planta] = (int(sheet_plantas.cell_value(planta+2, 2)), int(sheet_plantas.cell_value(planta+2, 3)))
 
 for planta in plantas:
     produccion_max[planta] = int(sheet_plantas.cell_value(planta+2, 7))
@@ -131,11 +135,13 @@ for obra in obras:
 for obra in obras_demanda:
     for planta in plantas:
         distancia_obra_planta[(obra, planta)] = int(sheet_obras.cell_value(int(obra)+3, planta+16))
-
+        
+for obra in obras_demanda:
+    posiciones_obras[obra] = (int(sheet_obras.cell_value(int(obra)+3, 2)), int(sheet_obras.cell_value(int(obra)+3, 3)))
 
 for obra in obras_demanda:
     # El tiempo se divide en 10 para que quede el tiempo de descarga por tonelada de hormigón
-    duracion_descarga_obras[obra] = float(sheet_obras.cell_value(int(obra)+3, 4))/10
+    duracion_descarga_obras[obra] = (float(sheet_obras.cell_value(int(obra)+3, 4))/10)
 
 # se usa para restriccion de tiempo de camiones        
 
@@ -171,7 +177,7 @@ A = {}
 
 for planta in plantas:
         for obra in obras_demanda:
-            for dia in dias:
+            for dia in range(1,7):
                     A[(planta, dia, obra)] = m.addVar(vtype=GRB.BINARY, name='A_{}_{}_{}'.format(
                                                                              planta, dia, obra))
 m.update()
@@ -217,7 +223,8 @@ obras_asig_0_7 = []
 for obra in obras_demanda:
     for dia in range(2, 8):
         if demanda_diaria[(obra, dia)] > 0:
-            m.addConstr(quicksum(x[(planta, dia, obra)] + A[(planta, dia-1, obra)] for planta in plantas) == 1)
+            m.addConstr(quicksum(x[(planta, dia, obra)] for planta in plantas) +
+                        quicksum(A[(planta, dia-1, obra)] for planta in plantas) == 1)
 m.update()
 
 for obra in obras_demanda:
@@ -255,7 +262,7 @@ for obra in obras_demanda:
 m.update()
 
 for obra in obras_demanda:
-    for dia in dias:
+    for dia in range(1, 7):
         if demanda_diaria[(obra, dia)] == 0:
             for planta in plantas:
                 m.addConstr(A[(planta, dia, obra)] == 0)
@@ -276,9 +283,9 @@ m.update()
 for planta in plantas:
     for dia in range(1, 7):
         m.addConstr(Inventario[planta, dia] + Produc[planta, dia] -
-                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia] +
-                              A[(planta, dia, obra)]*demanda_diaria[obra, dia+1]
-                 for obra in obras_demanda)) == Inventario[planta, dia+1])
+                    (quicksum(x[(planta, dia, obra)]*demanda_diaria[obra, dia] for obra in obras_demanda)) -
+                    (quicksum(A[(planta, dia, obra)]*demanda_diaria[obra, dia+1] for obra in obras_demanda))
+                     == Inventario[planta, dia+1])
 m.update()
 
 for planta in plantas:
@@ -314,8 +321,10 @@ obj = quicksum((Produc[planta, dia]*costos_planta[planta])
                for planta in plantas for dia in dias)\
       + quicksum((Inventario[planta, dia]*almacenamiento_planta[planta])
                  for dia in range(2,8) for planta in plantas) \
-      + quicksum(((x[(planta, dia, obra)]+A[(planta, dia, obra)])*distancia_obra_planta[(obra, planta)]*0.0021)
-                 for obra in obras_demanda for planta in plantas for dia in dias)\
+      + quicksum((x[(planta, dia, obra)]*distancia_obra_planta[(obra, planta)]*0.0021)
+                 for obra in obras_demanda for planta in plantas for dia in dias) \
+      + quicksum((A[(planta, dia, obra)]*distancia_obra_planta[(obra, planta)]*0.0021)
+                 for obra in obras_demanda for planta in plantas for dia in range(1,7))\
       + quicksum((A[(planta, dia, obra)]*demanda_diaria[(obra, dia+1)]*0.017)
                  for planta in plantas for obra in obras for dia in range(1, 7))
 
@@ -397,7 +406,7 @@ for planta in plantas:
         cantidad_obras_adelantadas[planta, dia] = 0
 
 produccion_plantas = []
-inventario_plantas = []
+inventario_plantas = {}
 costos_prod = 0
 costo_inventario = 0
 costos_adelantar = 0
@@ -406,12 +415,10 @@ for v in m.getVars():
         produccion_plantas.append((v.varName, v.x))
         costos_prod += (v.x*costos_planta[float(v.varName[7:8])])
     if v.varName[0:10] == "Inventario":
-        inventario_plantas.append((v.varName, v.x))
+        inventario_plantas[(int(v.varName[11:12]), int(v.varName[13:]))]= v.x
         costo_inventario += (v.x*almacenamiento_planta[float(v.varName[11:12])])
     if v.varName[0:1] == "A" and int(v.varName[4:5])<7:
         costos_adelantar += (v.x*0.017*demanda_diaria[(int(v.varName[6:7]),int(v.varName[4:5])+1)])
-    if v.varName[0:10] == "Inventario":
-        inventario_plantas.append((v.varName, v.x))
     if v.varName[0:5]=="x_1_1":
         if v.x==1:
             cantidad_obras_asignadas[1,1]+=1
@@ -443,7 +450,7 @@ for v in m.getVars():
     elif v.varName[0:5]=="x_4_2":
         if v.x==1:
             cantidad_obras_asignadas[4,2]+=1
-            obras_asignadas[3, 2].append(float(v.varName[6:len(v.varName)]))
+            obras_asignadas[4, 2].append(float(v.varName[6:len(v.varName)]))
     elif v.varName[0:5]=="x_1_3":
         if v.x==1:
             cantidad_obras_asignadas[1,3]+=1
@@ -792,6 +799,7 @@ print("Inventario plantas", inventario_plantas)
  #   except Excpetion as e:
   #      print(e)
    #     print("Ha ocurrido un problema al intentar guardar el archivo")
+"""   
 print(obras_asignadas)
 print(cantidad_obras_asignadas)
 print(obras_adelantadas)
@@ -800,5 +808,37 @@ print(costos_prod)
 print(costo_inventario)
 print(costos_adelantar)
 print('Costo total: %g' % m.objVal)
-
-
+print("Producción de plantas", produccion_plantas)
+print("Inventario plantas", inventario_plantas)
+total = 0
+for i in produccion_plantas:
+    total += i[1]
+print(total)
+totalinventario = 0
+for i in inventario_plantas.values():
+    totalinventario += i
+print(totalinventario)
+stock = 0
+for i in stock_inicial.values():
+    stock += i
+print(stock)
+print(totalinventario-total-stock)
+demanda=0
+for k, a in obras_adelantadas.items():
+    for i in a:
+        demanda += demanda_diaria[i, (float(k[1]))]
+for k, a in obras_asignadas.items():
+    for i in a:
+        demanda += demanda_diaria[(i, float(k[1]))]
+pedidos1 = 0
+for i in demanda_diaria.values():
+    if i>0:
+        pedidos1+= 1
+print(pedidos1)
+pedidos = 0
+for i in cantidad_obras_adelantadas.values():
+    pedidos += i
+for i in cantidad_obras_asignadas.values():
+    pedidos += i
+print(pedidos)
+"""
